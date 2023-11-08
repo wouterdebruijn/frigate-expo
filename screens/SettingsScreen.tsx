@@ -1,98 +1,189 @@
 import * as React from "react";
-import { StyleSheet, View, Text, Button, TextInput } from "react-native";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-interface Camera {
-    name: string;
-}
-
-interface Settings {
-    host: string;
-    cameras: Camera[];
-}
+import { StyleSheet, View, Text, Button, TextInput, ActivityIndicator, Image, FlatList } from "react-native";
+import { SettingController, Camera } from "../controllers/SettingsController";
+import { FrigateController } from "../controllers/FrigateController";
+import { useFocusEffect } from "@react-navigation/native";
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function SettingsScreen({ navigation }: { navigation: any }) {
+  const settingController = new SettingController();
 
-    async function storeSettings(settings: Settings) {
-        try {
-            const jsonValue = JSON.stringify(settings)
-            await AsyncStorage.setItem('settings', jsonValue)
-        } catch (e) {
-            // saving error
-        }
-    }
+  const [host, setHost] = React.useState<string>("");
+  const [cameras, setCameras] = React.useState<Camera[]>([]);
 
-    async function getSettings() {
-        try {
-            const jsonValue = await AsyncStorage.getItem('settings')
-            if (jsonValue != null) {
-                return JSON.parse(jsonValue) as Settings;
-            }
-        } catch (e) {
-            // error reading value
-        }
-    }
+  const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
-    const [host, setHost] = React.useState<string>("");
-    const [camera, setCamera] = React.useState<string>("");
+  const [unsavedChanges, setUnsavedChanges] = React.useState<boolean>(false);
 
+  async function getCameras() {
+    setIsLoading(true);
+    const frigateController = new FrigateController(host);
+    const newCameras = await frigateController.getCameras();
 
-    React.useEffect(() => {
-        const unsubscribe = navigation.addListener('focus', () => {
-            getSettings().then(settings => {
-                console.log(settings);
-                console.log(typeof settings);
-                if (settings) {
-                    setHost(settings.host);
-                    setCamera(settings.cameras.map((camera) => camera.name).join(","));
-                }
-            });
-        });
-
-        return unsubscribe;
+    let oldCameras = cameras.map((camera: Camera) => {
+      return {
+        ...camera,
+        unavailable: true,
+      }
     });
 
-    function saveSettings() {
-        storeSettings({ host: host, cameras: camera.split(",").map((name) => { return { name: name } }) });
+    oldCameras = oldCameras.filter((camera) =>
+      !newCameras.some((newCamera) => newCamera.name === camera.name)
+    )
+
+    setCameras([...newCameras, ...oldCameras]);
+    setUnsavedChanges(true);
+
+    setIsLoading(false);
+  }
+
+  async function getSettings() {
+    const settings = await settingController.getSettings();
+    if (settings) {
+      setHost(settings.host);
+      setCameras(settings.cameras);
+    }
+  }
+
+  async function saveSettings() {
+    await settingController.saveSettings({
+      host,
+      cameras,
+    });
+    setUnsavedChanges(false);
+  }
+
+  useFocusEffect(
+    React.useCallback(() => {
+      getSettings();
+    }, [])
+  );
+
+  function CameraMiniView({ camera }: { camera: Camera }) {
+    function renderText() {
+      if (camera.unavailable) {
+        return "Unavailable";
+      } else if (camera.enabled) {
+        return "Enabled";
+      } else {
+        return "Disabled";
+      }
+    }
+
+    function renderColor() {
+      if (camera.unavailable) {
+        return "#ccc";
+      } else if (camera.enabled) {
+        return "#0c0";
+      } else {
+        return "#c00";
+      }
     }
 
     return (
-        <View>
-            <View style={styles.container}>
-                <Text style={styles.title}>Host:</Text>
-                <TextInput
-                    style={styles.textInput}
-                    onChangeText={text => setHost(text)}
-                    value={host}
-                />
-                <Text style={styles.title}>Cameras (temp):</Text>
-                <TextInput
-                    style={styles.textInput}
-                    onChangeText={text => setCamera(text)}
-                    value={camera}
-                />
+      <View style={styles.cameraView}>
+        <Image
+          style={styles.previewImage}
+          source={{ uri: `${host}/api/${camera.name}/latest.jpg` }}
+        />
+        <Text>{camera.name}</Text>
+        <Button
+          title={renderText()}
+          color={renderColor()}
+          onPress={() => {
+            camera.enabled = !camera.enabled;
+            setCameras([...cameras]);
+            setUnsavedChanges(true);
+          }}
+        />
+      </View>
+    )
+  }
 
-            </View>
-            <View style={styles.container}>
-                <Button
-                    title="Save"
-                    onPress={() => saveSettings()}
-                />
-            </View>
-        </View>
-    );
+  function CameraView() {
+    return (
+      <View>
+        <FlatList
+          data={cameras}
+          renderItem={({ item }) => <CameraMiniView camera={item} />}
+          keyExtractor={(item) => item.name}
+        />
+      </View>
+    )
+  }
+
+  React.useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+      if (!unsavedChanges) {
+        return;
+      }
+
+      e.preventDefault();
+
+      saveSettings().then(() => {
+        console.log("Settings saved");
+        navigation.dispatch(e.data.action);
+      });
+
+      return unsubscribe;
+    });
+  }, [navigation, unsavedChanges]);
+
+
+  return (
+    <View>
+      <View style={styles.container}>
+        <Text>Host:</Text>
+        <TextInput
+          style={styles.textInput}
+          value={host}
+          onChangeText={(text) => {
+            setHost(text);
+            setUnsavedChanges(true);
+          }}
+        />
+        <MaterialIcons style={styles.refreshCameraIcon} name="refresh" size={24} color="black" onPress={() => getCameras()} />
+      </View>
+      <View style={styles.container}>
+        <CameraView />
+      </View>
+      <ActivityIndicator style={styles.activityIndicator} animating={isLoading} />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        paddingVertical: 5,
-        paddingHorizontal: 10,
-        backgroundColor: "#fff"
-    },
-    title: {
-    },
-    textInput: {
-        borderBottomColor: "#ccc",
-        borderBottomWidth: 1,
-    }
+  container: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    backgroundColor: "#fff"
+  },
+  textInput: {
+    borderBottomColor: "#ccc",
+    borderBottomWidth: 1,
+  },
+  activityIndicator: {
+    position: "absolute",
+    top: 10,
+    left: 0,
+    right: 0,
+  },
+  refreshCameraIcon: {
+    position: "absolute",
+    bottom: 10,
+    right: 10,
+  },
+  previewImage: {
+    width: 100,
+    aspectRatio: 1,
+  },
+  cameraView: {
+    backgroundColor: "#fff",
+    borderBottomColor: "#ccc",
+    borderBottomWidth: 1,
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  }
 });

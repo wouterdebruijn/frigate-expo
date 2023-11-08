@@ -1,7 +1,6 @@
 import * as React from "react";
 import { Button, ImageComponent, StyleSheet, View } from "react-native";
 import { Video, ResizeMode, AVPlaybackStatusSuccess } from "expo-av";
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { MaterialIcons } from '@expo/vector-icons'; 
 
 export default function Player({ uri, onClick }: { uri: string, onClick: (uri: string) => void }) {
@@ -9,7 +8,7 @@ export default function Player({ uri, onClick }: { uri: string, onClick: (uri: s
     const [status, setStatus] = React.useState<{ isPlaying: boolean }>({ isPlaying: false });
 
     return (
-        <View>
+        <View style={styles.view}>
             <Video
                 ref={video}
                 style={styles.video}
@@ -48,4 +47,7 @@ const styles = StyleSheet.create({
         right: 0,
         opacity: 0.8,
     },
+    view: {
+        paddingVertical: 4,
+    }
 });
