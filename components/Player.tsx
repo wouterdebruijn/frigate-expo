@@ -25,8 +25,8 @@ export default function Player({ uri, onClick }: { uri: string, onClick: (uri: s
             <View style={styles.overlay}>
                 <MaterialIcons
                     name="fullscreen"
-                    size={32}
-                    color="black"
+                    size={24}
+                    color="white"
                     onPress={() => onClick(uri)}    
                 />
             </View>
@@ -43,11 +43,11 @@ const styles = StyleSheet.create({
     },
     overlay: {
         position: "absolute",
-        bottom: 0,
-        right: 0,
+        bottom: 4,
+        right: 3,
         opacity: 0.8,
     },
     view: {
-        paddingVertical: 4,
+        paddingVertical: 2,
     }
 });
