@@ -8,21 +8,19 @@ export default function Player({ uri, onClick }: { uri: string, onClick: (uri: s
     const [status, setStatus] = React.useState<{ isPlaying: boolean }>({ isPlaying: false });
 
     return (
-        <View>
-            <Video
-                ref={video}
-                style={styles.video}
-                source={{
-                    uri: uri,
-                }}
-                resizeMode={ResizeMode.CONTAIN}
-                isMuted={true}
-                shouldPlay={true}
-                useNativeControls={false}
-                onPlaybackStatusUpdate={status => setStatus(() => status as AVPlaybackStatusSuccess)}
-                onPointerDown={() => onClick(uri)}
-            />
-        </View>
+        <Video
+            ref={video}
+            style={styles.video}
+            source={{
+                uri: uri,
+            }}
+            resizeMode={ResizeMode.CONTAIN}
+            isMuted={true}
+            shouldPlay={true}
+            useNativeControls={false}
+            onPlaybackStatusUpdate={status => setStatus(() => status as AVPlaybackStatusSuccess)}
+            onPointerDown={() => onClick(uri)}
+        />
     )
 }
 
@@ -30,6 +28,6 @@ const styles = StyleSheet.create({
     video: {
         aspectRatio: 16 / 9,
         width: "100%",
-        borderRadius: 5
+        height: "100%",
     },
 });
