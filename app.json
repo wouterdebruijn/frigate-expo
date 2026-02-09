@@ -15,11 +15,15 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "nl.wouterdebruijn.frigateapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "nl.wouterdebruijn.frigateapp"
@@ -33,7 +37,19 @@
         {
           "initialOrientation": "DEFAULT"
         }
+      ],
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": true,
+          "supportsPictureInPicture": true
+        }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "27cd4be8-1fd8-4579-9198-2a6c4163a9f8"
+      }
+    }
   }
 }
